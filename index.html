@@ -14,9 +14,9 @@
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--tx);
        font:15px/1.65 "Pretendard","맑은 고딕",system-ui,sans-serif}
-  .wrap{max-width:860px;margin:0 auto;padding:16px 14px 90px}
+  .wrap{max-width:880px;margin:0 auto;padding:16px 14px 110px}
 
-  header{display:flex;align-items:center;gap:10px;margin:6px 0 14px}
+  header{display:flex;align-items:center;gap:10px;margin:6px 0 14px;flex-wrap:wrap}
   header h1{font-size:20px;margin:0;font-weight:800}
   header .sub{color:var(--dim);font-size:13px}
 
@@ -31,6 +31,8 @@
   .card h3{margin:0 0 8px;font-size:16px}
   .card .body{color:#333}
   .kw{background:#eef4ff;color:#1d4ed8;border-radius:6px;padding:1px 6px;font-weight:700}
+  .key{display:inline-block;background:#1f2937;color:#fff;border-radius:6px;padding:1px 7px;
+       font-size:12.5px;font-weight:700;letter-spacing:.3px}
 
   .btn{border:1px solid var(--line);background:var(--card);border-radius:10px;
        padding:10px 16px;font-weight:700;cursor:pointer;font-size:14px}
@@ -57,6 +59,31 @@
   .muted{color:var(--dim);font-size:13px}
   .pill{display:inline-block;background:#eef1f5;border-radius:99px;padding:2px 10px;
         font-size:12px;font-weight:700;color:var(--dim)}
+
+  /* 배점표 */
+  table.pt{width:100%;border-collapse:collapse;font-size:14px;margin-top:6px}
+  table.pt th,table.pt td{border:1px solid var(--line);padding:7px 9px;text-align:left}
+  table.pt th{background:#f1f4f9;font-size:13px;color:#334}
+  table.pt td.n{text-align:right;font-weight:800;white-space:nowrap}
+  .scroll{overflow-x:auto}
+
+  /* 실습 세트 체크리스트 */
+  .setbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .setbtn{padding:8px 13px;border:1px solid var(--line);border-radius:10px;background:var(--card);
+          cursor:pointer;font-weight:700;font-size:13.5px;color:var(--dim)}
+  .setbtn.on{background:#111827;border-color:#111827;color:#fff}
+  .step{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:11px;
+        padding:11px 13px;margin-bottom:8px;background:var(--card);cursor:pointer}
+  .step:hover{border-color:var(--pri)}
+  .step.done{background:#f2fbf6;border-color:#bfe6cf}
+  .step .bx{flex:0 0 22px;height:22px;border:2px solid #cbd3dd;border-radius:6px;margin-top:2px;
+            display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:900}
+  .step.done .bx{background:var(--ok);border-color:var(--ok)}
+  .step .st{flex:1}
+  .step .st b{display:block;font-size:15px}
+  .step .st span{display:block;color:var(--dim);font-size:13.5px;margin-top:2px}
+  .setnote{background:#fffbeb;border:1px solid #fde68a;border-radius:11px;padding:11px 14px;
+           font-size:13.5px;color:#78350f;margin-bottom:12px}
 </style>
 </head>
 <body>
@@ -70,6 +97,7 @@
   <div class="tabs">
     <button class="tab on" data-view="learn">📖 배우기</button>
     <button class="tab"    data-view="practice">✏️ 연습 8문항</button>
+    <button class="tab"    data-view="sets">🧪 실습 세트</button>
     <button class="tab"    data-view="exam">🏁 종합시험 20문항</button>
     <button class="tab"    data-view="wrong">📕 오답노트</button>
   </div>
@@ -79,41 +107,378 @@
 
 <script>
 /* ══════════════════════════════════════════════════════════════
-   ITQ 엑셀
+   ITQ 엑셀 — 한글엑셀(과목코드 1122) 실기 대비 학습도구
    규약: https://github.com/hongyul67-cpu/links/blob/master/CONVENTIONS.md
-   고칠 곳은 아래 LEARN / QUESTIONS 두 배열뿐입니다.
+   자료 근거: ITQ 엑셀 교재의 출제유형 01~07 구성 · 출제예상 모의고사 문제지의
+             수험자 유의사항 · 답안 작성요령 · 작업별 배점(240/80/80/100)
    ══════════════════════════════════════════════════════════════ */
 
 /* ── 1) 배우기 — 정답을 다 보여 주는 단계. 테스트보다 반드시 앞에 ── */
 const LEARN = [
-  { unit:'1단원', t:'첫 번째 개념', body:
-    '교과서 표현을 그대로 쓰고, 필요하면 짧은 보충만 덧붙입니다. ' +
-    '핵심어는 <span class="kw">이렇게</span> 강조합니다.' },
-  { unit:'1단원', t:'두 번째 개념', body:
-    '그림이 필요하면 <b>SVG 를 직접 그려</b> 넣습니다(외부 이미지 링크는 깨집니다).' },
+  { unit:'시험 개요', t:'ITQ 엑셀은 이렇게 생겼습니다', body:
+    '과목 <span class="kw">한글엑셀</span> · 과목코드 <span class="kw">1122</span> · 시험시간 <span class="kw">60분</span> · ' +
+    '총점 <span class="kw">500점</span>.<br>' +
+    '한 통합 문서 안에 <b>시트 네 장</b>을 만드는 것이 시험 전부입니다. 객관식이 없습니다.' +
+    '<div class="scroll"><table class="pt">' +
+    '<tr><th>시트</th><th>하는 일</th><th>배점</th></tr>' +
+    '<tr><td>제1작업</td><td>표 서식 작성 및 값 계산</td><td class="n">240점</td></tr>' +
+    '<tr><td>제2작업</td><td>목표값 찾기 및 필터 <b>또는</b> 필터 및 서식</td><td class="n">80점</td></tr>' +
+    '<tr><td>제3작업</td><td>정렬 및 부분합 <b>또는</b> 피벗 테이블</td><td class="n">80점</td></tr>' +
+    '<tr><td>제4작업</td><td>그래프</td><td class="n">100점</td></tr>' +
+    '<tr><th colspan="2">합계</th><th style="text-align:right">500점</th></tr>' +
+    '</table></div>' +
+    '<div style="margin-top:8px"><b>제1작업이 240점</b>으로 절반 가까이 됩니다. ' +
+    '게다가 제2·제3·제4작업이 모두 제1작업을 복사해 쓰므로, <b>제1작업이 틀리면 전부 틀립니다.</b></div>' },
+
+  { unit:'유형 01 · 답안 준비', t:'답안 작성요령 — 여기서 실격이 갈립니다', body:
+    '· 문제는 총 4단계, 즉 <b>제1작업부터 제4작업까지</b> 구성되어 있으며 반드시 <b>제1작업부터 순서대로</b> 작성합니다.<br>' +
+    '· 답안 시트 이름은 <span class="kw">제1작업</span> <span class="kw">제2작업</span> ' +
+    '<span class="kw">제3작업</span> <span class="kw">제4작업</span> 이어야 하며, ' +
+    '<b>답안 시트 이외의 것은 감점</b> 처리됩니다.<br>' +
+    '· <b>각 시트를 파일로 나누어 작업해서 저장할 경우 실격</b>입니다.<br>' +
+    '· 모든 작업시트의 <b>A열은 열 너비 「1」</b>로, 나머지 열은 적당하게 조절합니다.<br>' +
+    '· 모든 작업시트의 테두리는 ≪출력형태≫와 같이 작업합니다.<br>' +
+    '· 파일명은 「수험번호-성명」(예: 12345678-홍길동.xlsx), 저장 위치는 <span class="kw">내 PC\\문서\\ITQ</span> 입니다.<br>' +
+    '· <b>시트명 순서가 차례대로 제1작업 → 제4작업이 되도록</b> 해야 합니다.' },
+
+  { unit:'유형 01 · 답안 준비', t:'시작하자마자 하는 일 (3분)', body:
+    '① 새 통합 문서를 열고 시트를 <b>세 장 더</b> 만들어 넉 장으로 맞춥니다.<br>' +
+    '② 시트 이름을 제1작업·제2작업·제3작업으로 바꿉니다. ' +
+    '(제4작업은 그래프를 <b>새 시트</b>로 옮길 때 생기므로 지금은 만들지 않습니다.)<br>' +
+    '③ 시트 <b>세 장을 함께 선택(그룹화)</b>한 뒤 <b>A열 너비를 1</b>로 한 번에 지정합니다.<br>' +
+    '④ 「수험번호-성명」으로 저장합니다.<br><br>' +
+    '온라인 절차는 <span class="kw">수험자 등록 ⇒ 시험 시작 ⇒ 답안파일 저장 ⇒ 답안 전송 ⇒ 시험 종료</span> 입니다. ' +
+    '<b>저장하지 않고 전송하면 이전에 저장된 내용이 전송됩니다.</b>' },
+
+  { unit:'유형 02 · 제1작업', t:'데이터 입력과 제목 작성', body:
+    '· 모든 데이터의 서식 — 글꼴 <span class="kw">굴림, 11pt</span>. ' +
+    '정렬은 <b>숫자 및 회계 서식은 오른쪽 정렬</b>, <b>나머지 서식은 가운데 정렬</b>. ' +
+    '예외는 ≪출력형태≫를 따릅니다.<br>' +
+    '· 제목 — <b>도형</b>과 <b>그림자</b>를 이용해 만들고 그 안에 제목을 입력한 뒤 서식을 줍니다 ' +
+    '(예: 글꼴 굴림 24pt 검정 굵게, 채우기 노랑).<br>' +
+    '· 결재란 — <b>임의의 셀</b>에 만들어 두고 <b>그림으로 복사</b> 기능으로 붙인 뒤 <b>원본은 삭제</b>합니다. ' +
+    '결재란을 표 옆에 직접 그리면 열 너비가 틀어집니다.' },
+
+  { unit:'유형 03 · 제1작업', t:'셀 서식 — 자주 나오는 다섯 가지', body:
+    '① <b>영역 채우기</b> — 지정된 영역을 지시된 색(주황 등)으로<br>' +
+    '② <b>유효성 검사</b> — 어떤 셀에 목록이 <b>선택 표시</b>되도록 (원본 범위를 지정)<br>' +
+    '③ <b>사용자 지정 표시 형식</b> — 숫자 뒤에 단위를 붙여 보이게 (예: 500 → 500W/h). ' +
+    '값 자체를 고쳐 「500W/h」라고 입력하면 계산이 깨집니다. <b>서식으로만</b> 붙입니다.<br>' +
+    '④ <b>이름 정의</b> — 어떤 영역에 이름을 붙여 두고 함수에서 그 이름을 씁니다<br>' +
+    '⑤ <b>조건부 서식</b> — 대개 <b>수식을 이용</b>해 「~이상인 행 전체」에 글꼴 서식을 줍니다' },
+
+  { unit:'유형 04 · 제1작업', t:'값 계산 — 함수는 반드시 지시된 것으로', body:
+    '문제지에 「(1)~(6) 셀은 반드시 <b>주어진 함수를 이용</b>하여 값을 구하시오 ' +
+    '(<b>결과값을 직접 입력하면 해당 셀은 0점 처리됨</b>)」이라고 적혀 있습니다.' +
+    '<div class="scroll"><table class="pt">' +
+    '<tr><th>물어보는 말</th><th>함께 지시되는 함수</th></tr>' +
+    '<tr><td>코드의 몇 번째 값이 1이면 A, 2이면 B …</td><td>CHOOSE, MID</td></tr>' +
+    '<tr><td>내림차순 순위</td><td>RANK.EQ</td></tr>' +
+    '<tr><td>조건에 맞는 것의 개수 (표 전체를 조건으로)</td><td>DCOUNTA</td></tr>' +
+    '<tr><td>조건에 맞는 값의 합 / 개수</td><td>SUMIF, COUNTIF</td></tr>' +
+    '<tr><td>가장 큰 값 / 가장 작은 값</td><td>MAX, MIN</td></tr>' +
+    '<tr><td>선택한 코드에 해당하는 값 찾아오기</td><td>VLOOKUP</td></tr>' +
+    '<tr><td>평균</td><td>AVERAGE, ROUND 와 함께</td></tr>' +
+    '<tr><td>결과값에 「개」 「명」 을 붙이기</td><td>&amp; 연산자</td></tr>' +
+    '</table></div>' +
+    '<div style="margin-top:8px">「(예 : 1개)」처럼 결과 모양을 알려 주면 <b>&amp; 연산자</b>로 글자를 이어 붙이라는 뜻입니다.</div>' },
+
+  { unit:'유형 05 · 제2작업', t:'제2작업은 두 가지 중 하나가 나옵니다 (80점)', body:
+    '공통 — <b>제1작업 시트의 지정 영역을 복사해 제2작업 시트의 「B2」 셀부터 붙여넣기</b> 한 뒤 시작합니다.<br><br>' +
+    '<b>㉠ 목표값 찾기 및 필터</b><br>' +
+    '· 셀을 <b>병합</b>하고 설명을 입력한 뒤 옆 셀에 <b>AVERAGE</b> 등으로 값을 구합니다(테두리·가운데 맞춤).<br>' +
+    '· <b>목표값 찾기</b> — 「그 평균이 ○○이 되려면 어떤 값이 얼마가 되어야 하는가」를 구합니다. ' +
+    '[데이터] → 가상 분석 → 목표값 찾기.<br>' +
+    '· <b>고급 필터</b> — 조건 범위와 복사 위치의 <b>셀 주소가 문제에 못박혀</b> 있습니다(예: 조건 범위 B14, 복사 위치 B18).<br><br>' +
+    '<b>㉡ 필터 및 서식</b><br>' +
+    '· 고급 필터로 뽑아낸 뒤, 결과 셀을 <b>채우기 없음</b>으로 바꾸고 지정된 <b>표 스타일</b>을 적용합니다.<br>' +
+    '· <b>머리글 행 · 줄무늬 행</b> 체크까지 조건에 들어갑니다.' },
+
+  { unit:'유형 05 · 제2작업', t:'고급 필터의 조건 쓰는 법', body:
+    '「A로 시작하<b>거나</b> B 이상인」 → 두 조건을 <b>다른 줄</b>에 씁니다 (OR)<br>' +
+    '「A이<b>면서</b> B 이상인」 → 두 조건을 <b>같은 줄</b>에 씁니다 (AND)<br><br>' +
+    '· 「\'H\'로 시작하는」 은 조건 칸에 <span class="kw">H*</span> 라고 씁니다.<br>' +
+    '· 「\'50\' 이하인」 은 <span class="kw">&lt;=50</span> 이라고 씁니다.<br>' +
+    '· 조건 칸의 <b>머리글은 원본 표의 머리글과 글자가 똑같아야</b> 합니다. 한 글자만 달라도 걸리지 않습니다.<br>' +
+    '· 추출할 열이 정해져 있으면 <b>복사 위치에 그 머리글만 미리 적어</b> 두고 필터를 실행합니다.' },
+
+  { unit:'유형 06 · 제3작업', t:'제3작업도 두 가지 중 하나 (80점)', body:
+    '<b>㉠ 정렬 및 부분합</b><br>' +
+    '· ≪출력형태≫를 보고 <b>어느 열로 정렬했는지</b> 먼저 알아냅니다. 정렬을 먼저 하지 않으면 부분합이 뒤죽박죽 됩니다.<br>' +
+    '· 부분합은 대개 <b>두 번</b> 넣습니다(예: 개수 한 번, 평균 한 번). ' +
+    '두 번째 부분합에서는 <b>「새로운 값으로 대치」 체크를 풀어야</b> 첫 번째가 살아 있습니다.<br>' +
+    '· 「개요[윤곽] – 지우시오」 → [데이터] → 그룹 해제 → <b>윤곽 지우기</b>.<br><br>' +
+    '<b>㉡ 피벗 테이블</b><br>' +
+    '· 숫자 필드를 <b>그룹화</b>해 구간으로 묶습니다(예: 1-300, 301-600).<br>' +
+    '· <b>레이블이 있는 셀 병합 및 가운데 맞춤</b> 은 피벗 테이블 옵션에 있습니다.<br>' +
+    '· <b>빈 셀은 「**」로 표시</b> — 이것도 피벗 테이블 옵션입니다.<br>' +
+    '· <b>행의 총합계는 지우고</b>, 열 이름·정렬은 ≪출력형태≫에 맞춥니다.' },
+
+  { unit:'유형 07 · 제4작업', t:'그래프 (100점) — 순서가 곧 점수', body:
+    '① 차트 종류 — 대개 <b>묶은 세로 막대형</b><br>' +
+    '② 데이터 범위 — <b>제1작업 시트</b>의 내용에서, 문제가 지시한 것만<br>' +
+    '③ 위치 — <b>「새 시트」로 이동</b>하고 시트 이름을 <b>제4작업</b>으로 바꿉니다 ' +
+    '(같은 시트에 두면 조건 위반입니다)<br>' +
+    '④ 차트 디자인 도구 — <b>레이아웃</b>과 <b>스타일</b> 번호가 지정됩니다<br>' +
+    '⑤ 영역 서식 — 차트 영역 글꼴, <b>채우기 효과(질감)</b>, 그림 영역 채우기<br>' +
+    '⑥ 제목 서식 — 글꼴·채우기·테두리<br>' +
+    '⑦ 한 계열만 <b>표식이 있는 꺾은선형</b>으로 바꾸고 <b>보조 축</b>으로 지정 → 표식 모양·크기, 레이블 값 표시<br>' +
+    '⑧ 눈금선 — 선 스타일(파선 등)<br>' +
+    '⑨ 범례명 변경<br>' +
+    '⑩ 도형(설명선) 삽입 후 내용 입력<br><br>' +
+    '<b>마지막에 시트 순서를 반드시 확인</b>합니다 — 제1작업 → 제2작업 → 제3작업 → 제4작업.' },
+
+  { unit:'유형 07 · 제4작업', t:'보조 축이 무엇인지', body:
+    '한 차트에 <b>단위가 아주 다른 두 자료</b>(예: 소비전력 500 과 가격 1,102,900)를 함께 그리면, ' +
+    '작은 쪽은 바닥에 붙어 보이지 않습니다.<br>' +
+    '그래서 한 계열을 <b>꺾은선형</b>으로 바꾸고 <b>오른쪽에 눈금을 하나 더</b> 세웁니다. 이 오른쪽 눈금이 <b>보조 축</b>입니다.<br>' +
+    '· 계열 선택 → 우클릭 → <b>계열 차트 종류 변경</b> → 그 계열만 꺾은선형 + <b>보조 축</b> 체크.' },
 ];
 
 /* ── 2) 문항 — a 는 정답 보기의 번호(0부터) ──
-      ⚠ 발문·보기·해설 어디에도 정답을 흘리지 말 것.
-        캡션("절단선을 보고 고르시오")이 답을 알려 주는 사고가 실제로 있었습니다. */
+      ⚠ 발문·보기·해설 어디에도 정답을 흘리지 말 것. */
 const QUESTIONS = [
-  { unit:'1단원',
-    q:'여기에 발문을 씁니다. 한 값만 가리키도록 씁니다.',
-    ch:['보기 1','보기 2','보기 3','보기 4'],
-    a:1,
-    ex:'왜 그 답인지 — 학생이 혼자 읽고 이해할 만큼.' },
-  { unit:'1단원',
-    q:'두 번째 문항.',
-    ch:['보기 1','보기 2','보기 3','보기 4'],
-    a:0,
-    ex:'해설.' },
+  { unit:'시험 개요', q:'ITQ 엑셀 시험의 과목코드는?',
+    ch:['1111','1122','1132','2222'], a:1,
+    ex:'문제지 머리표의 과목·코드 칸에서 확인합니다.' },
+  { unit:'시험 개요', q:'ITQ 엑셀 시험의 시험시간은?',
+    ch:['40분','50분','60분','80분'], a:2,
+    ex:'네 장의 시트를 이 시간 안에 모두 만들어야 합니다.' },
+  { unit:'시험 개요', q:'배점이 가장 큰 작업은?',
+    ch:['제1작업','제2작업','제3작업','제4작업'], a:0,
+    ex:'뒤의 세 작업이 모두 이 작업의 표를 가져다 쓰기 때문에 더 중요합니다.' },
+  { unit:'시험 개요', q:'제4작업(그래프)의 배점은?',
+    ch:['60점','80점','100점','240점'], a:2,
+    ex:'제2작업과 제3작업은 각각 80점입니다.' },
+  { unit:'시험 개요', q:'제2작업과 제3작업의 배점을 합하면?',
+    ch:['100점','160점','180점','240점'], a:1,
+    ex:'두 작업이 각각 같은 배점을 가집니다.' },
+
+  { unit:'유형 01 · 답안 준비', q:'답안 시트의 이름으로 옳은 것은?',
+    ch:['Sheet1, Sheet2, Sheet3, Sheet4','1작업, 2작업, 3작업, 4작업',
+        '제1작업, 제2작업, 제3작업, 제4작업','작업1, 작업2, 작업3, 작업4'], a:2,
+    ex:'답안 시트 이외의 이름이 남아 있으면 감점 처리됩니다.' },
+  { unit:'유형 01 · 답안 준비', q:'각 시트를 파일로 나누어 저장했을 때의 처리는?',
+    ch:['감점 없음','절반 감점','실격 처리','다시 저장하면 됨'], a:2,
+    ex:'답안은 하나의 파일로만 제출합니다.' },
+  { unit:'유형 01 · 답안 준비', q:'모든 작업시트의 A열에 지정해야 하는 열 너비 값은?',
+    ch:['1','5','8.38','자동 맞춤'], a:0,
+    ex:'시트를 그룹으로 묶어 한 번에 지정하면 빠릅니다.' },
+  { unit:'유형 01 · 답안 준비', q:'답안 파일을 저장하는 지정 폴더는?',
+    ch:['바탕 화면','내 PC\\문서\\ITQ','내 PC\\다운로드','임의의 폴더'], a:1,
+    ex:'다른 보조기억장치에 저장하면 부정 처리 대상입니다.' },
+  { unit:'유형 01 · 답안 준비', q:'답안 파일의 이름 규칙은?',
+    ch:['성명-수험번호.xlsx','수험번호-성명.xlsx','성명.xlsx','ITQ-수험번호.xlsx'], a:1,
+    ex:'이름이 규칙과 다르면 전송이 되지 않습니다.' },
+  { unit:'유형 01 · 답안 준비', q:'제4작업 시트는 언제 생기는가?',
+    ch:['처음에 미리 만들어 둔다','그래프를 새 시트로 옮길 때 생긴다',
+        '자동으로 만들어져 있다','제3작업을 복사해 만든다'], a:1,
+    ex:'차트 위치를 옮기면서 시트 이름을 바꾸는 것이 조건입니다.' },
+
+  { unit:'유형 02 · 제1작업', q:'모든 데이터에 지정하는 기본 글꼴과 크기는?',
+    ch:['굴림, 11pt','맑은 고딕, 11pt','굴림, 10pt','돋움, 12pt'], a:0,
+    ex:'예외로 두어야 할 것은 ≪출력형태≫를 보고 판단합니다.' },
+  { unit:'유형 02 · 제1작업', q:'정렬 조건에서 오른쪽 정렬로 두는 것은?',
+    ch:['모든 데이터','문자 데이터','숫자 및 회계 서식','머리글만'], a:2,
+    ex:'나머지 서식은 가운데 정렬로 작성합니다.' },
+  { unit:'유형 02 · 제1작업', q:'제목을 만들 때 사용하라고 지시되는 것은?',
+    ch:['셀 병합만','도형과 그림자','머리글/바닥글','워드아트만'], a:1,
+    ex:'도형 안에 제목 글자를 입력하고 글꼴·채우기 서식을 줍니다.' },
+  { unit:'유형 02 · 제1작업', q:'결재란을 만드는 방법으로 옳은 것은?',
+    ch:['표 옆 셀에 직접 그린다','임의의 셀에 만든 뒤 그림으로 복사해 붙이고 원본은 삭제한다',
+        '머리글에 넣는다','도형으로만 그린다'], a:1,
+    ex:'표 옆에 직접 그리면 열 너비가 함께 바뀌어 표가 틀어집니다.' },
+
+  { unit:'유형 03 · 제1작업', q:'셀에 목록이 선택 표시되도록 만드는 기능은?',
+    ch:['조건부 서식','유효성 검사','이름 정의','필터'], a:1,
+    ex:'[데이터] 탭에 있으며 원본으로 쓸 범위를 지정합니다.' },
+  { unit:'유형 03 · 제1작업', q:'숫자 500 을 화면에 「500W/h」로 보이게 하는 올바른 방법은?',
+    ch:['셀에 500W/h 라고 직접 입력한다','사용자 지정 표시 형식을 지정한다',
+        '옆 셀에 W/h 를 적는다','메모를 단다'], a:1,
+    ex:'값을 글자로 바꿔 버리면 그 셀을 쓰는 계산이 모두 깨집니다.' },
+  { unit:'유형 03 · 제1작업', q:'어떤 영역에 이름을 붙여 두고 함수에서 그 이름을 쓰게 하는 기능은?',
+    ch:['이름 정의','유효성 검사','조건부 서식','메모'], a:0,
+    ex:'문제에서 「정의된 이름을 이용하여 구하시오」로 지시됩니다.' },
+  { unit:'유형 03 · 제1작업', q:'「~이상인 행 전체에 글꼴 서식을 적용하시오」 조건에서 쓰는 기능은?',
+    ch:['셀 서식','조건부 서식','필터','부분합'], a:1,
+    ex:'행 전체에 걸려면 규칙을 수식으로 만들어야 합니다.' },
+
+  { unit:'유형 04 · 제1작업', q:'계산 결과값을 함수 대신 직접 입력했을 때의 처리는?',
+    ch:['정답으로 인정','절반 인정','해당 셀 0점 처리','감점 없음'], a:2,
+    ex:'문제지에 그대로 적혀 있는 문장입니다.' },
+  { unit:'유형 04 · 제1작업', q:'「내림차순 순위를 구하시오」와 함께 지시되는 함수는?',
+    ch:['RANK.EQ','LARGE','MAX','COUNTIF'], a:0,
+    ex:'순위를 구하는 함수이며 내림/오름차순은 세 번째 인수로 정합니다.' },
+  { unit:'유형 04 · 제1작업', q:'「코드의 세 번째 값이 1이면 A, 2이면 B, 3이면 C」 조건에서 함께 지시되는 함수 짝은?',
+    ch:['IF, LEFT','CHOOSE, MID','VLOOKUP, RIGHT','SUMIF, MID'], a:1,
+    ex:'문자열에서 한 글자를 떼어 낸 뒤, 그 번호로 목록에서 골라 오는 방식입니다.' },
+  { unit:'유형 04 · 제1작업', q:'「선택한 제품코드에 대한 값을 구하시오」와 함께 지시되는 함수는?',
+    ch:['VLOOKUP','SUMIF','DCOUNTA','CHOOSE'], a:0,
+    ex:'표의 첫 열에서 값을 찾아 같은 행의 다른 열 값을 가져옵니다.' },
+  { unit:'유형 04 · 제1작업', q:'「단, 조건은 입력데이터를 이용하시오」라는 단서와 함께 개수를 구할 때 지시되는 함수는?',
+    ch:['COUNT','COUNTA','DCOUNTA','COUNTIF'], a:2,
+    ex:'표 전체와 조건이 적힌 셀 범위를 인수로 받는 데이터베이스 함수입니다.' },
+  { unit:'유형 04 · 제1작업', q:'결과값 뒤에 「개」를 붙이라는 지시(예 : 1개)에서 함께 쓰는 것은?',
+    ch:['& 연산자','TEXT 함수','메모','셀 병합'], a:0,
+    ex:'계산 결과와 글자를 이어 붙이는 연산자입니다.' },
+  { unit:'유형 04 · 제1작업', q:'「정의된 이름을 이용하여 조건에 맞는 값의 평균을 구하시오」에 함께 지시되는 함수 짝은?',
+    ch:['AVERAGE, COUNT','SUMIF, COUNTIF','MAX, MIN','VLOOKUP, MID'], a:1,
+    ex:'조건에 맞는 합을 조건에 맞는 개수로 나누는 방식입니다.' },
+
+  { unit:'유형 05 · 제2작업', q:'제2작업을 시작할 때 가장 먼저 하는 일은?',
+    ch:['새로 표를 입력한다','제1작업의 지정 영역을 복사해 붙여넣는다',
+        '제3작업을 먼저 만든다','시트 이름을 바꾼다'], a:1,
+    ex:'붙여넣을 시작 셀 주소가 문제에 정해져 있습니다.' },
+  { unit:'유형 05 · 제2작업', q:'「평균이 1,220이 되려면 어떤 값이 얼마가 되어야 하는가」를 구하는 기능은?',
+    ch:['목표값 찾기','시나리오','해 찾기','부분합'], a:0,
+    ex:'[데이터] 탭의 가상 분석 안에 있습니다.' },
+  { unit:'유형 05 · 제2작업', q:'고급 필터에서 「A로 시작하거나 B 이상인」 조건을 쓰는 방법은?',
+    ch:['같은 줄에 나란히 쓴다','서로 다른 줄에 쓴다','한 칸에 모두 쓴다','조건을 나누어 두 번 실행한다'], a:1,
+    ex:'줄이 다르면 둘 중 하나만 맞아도 뽑히고, 같은 줄이면 둘 다 맞아야 뽑힙니다.' },
+  { unit:'유형 05 · 제2작업', q:'고급 필터 조건 칸의 머리글에 대한 설명으로 옳은 것은?',
+    ch:['아무렇게나 적어도 된다','원본 표의 머리글과 글자가 똑같아야 한다',
+        '반드시 비워 둔다','영문으로 적어야 한다'], a:1,
+    ex:'한 글자만 달라도 조건이 걸리지 않아 결과가 비어 버립니다.' },
+  { unit:'유형 05 · 제2작업', q:'「\'H\'로 시작하는」 자료를 뽑는 고급 필터 조건은?',
+    ch:['H','H*','*H','=H'], a:1,
+    ex:'별표는 아무 글자가 몇 개든 올 수 있다는 뜻입니다.' },
+  { unit:'유형 05 · 제2작업', q:'「필터 및 서식」 유형에서 필터 결과에 적용하는 것은?',
+    ch:['조건부 서식','표 스타일','피벗 테이블','부분합'], a:1,
+    ex:'채우기를 없앤 뒤 지정된 스타일 이름을 그대로 골라 적용합니다.' },
+
+  { unit:'유형 06 · 제3작업', q:'부분합을 넣기 전에 반드시 먼저 해야 할 일은?',
+    ch:['정렬','필터','서식 지정','차트 만들기'], a:0,
+    ex:'묶을 기준이 흩어져 있으면 같은 항목이 여러 덩어리로 나뉩니다.' },
+  { unit:'유형 06 · 제3작업', q:'부분합을 두 번 넣을 때 두 번째에서 체크를 풀어야 하는 항목은?',
+    ch:['새로운 값으로 대치','데이터 아래에 요약 표시','그룹 사이에서 페이지 나누기','모두 제거'], a:0,
+    ex:'풀지 않으면 첫 번째로 넣은 것이 사라집니다.' },
+  { unit:'유형 06 · 제3작업', q:'「개요[윤곽] – 지우시오」 조건을 처리하는 곳은?',
+    ch:['[데이터] 탭의 그룹 해제 → 윤곽 지우기','[보기] 탭의 눈금선 해제',
+        '[홈] 탭의 지우기','[페이지 레이아웃] 탭'], a:0,
+    ex:'왼쪽에 생긴 접기 단추와 세로줄을 없애는 작업입니다.' },
+  { unit:'유형 06 · 제3작업', q:'피벗 테이블에서 「빈 셀은 **로 표시」를 지정하는 곳은?',
+    ch:['셀 서식','피벗 테이블 옵션','조건부 서식','찾기 및 바꾸기'], a:1,
+    ex:'같은 대화상자에서 레이블 셀 병합도 함께 지정합니다.' },
+  { unit:'유형 06 · 제3작업', q:'피벗 테이블에서 숫자 필드를 1-300, 301-600 처럼 구간으로 묶는 기능은?',
+    ch:['정렬','그룹화','필터','부분합'], a:1,
+    ex:'구간의 시작·끝·간격을 직접 입력해 지정합니다.' },
+
+  { unit:'유형 07 · 제4작업', q:'차트를 만든 뒤 위치에 대한 조건은?',
+    ch:['제1작업 시트에 그대로 둔다','새 시트로 이동하고 시트 이름을 제4작업으로 바꾼다',
+        '제3작업 시트로 옮긴다','새 통합 문서로 옮긴다'], a:1,
+    ex:'시트 이름과 순서까지 조건에 들어 있습니다.' },
+  { unit:'유형 07 · 제4작업', q:'차트의 데이터 범위로 쓰는 시트는?',
+    ch:['제1작업','제2작업','제3작업','제4작업'], a:0,
+    ex:'다른 시트의 표는 필터·부분합으로 모양이 바뀌어 있습니다.' },
+  { unit:'유형 07 · 제4작업', q:'단위가 크게 다른 계열을 함께 보이게 하려고 오른쪽에 눈금을 하나 더 세우는 것은?',
+    ch:['보조 축','보조 눈금선','이중 축 제목','오차 막대'], a:0,
+    ex:'그 계열만 차트 종류를 바꾼 뒤 함께 지정합니다.' },
+  { unit:'유형 07 · 제4작업', q:'한 계열만 다른 모양으로 바꿀 때 쓰는 메뉴는?',
+    ch:['차트 종류 변경(계열)','차트 스타일','차트 레이아웃','데이터 선택'], a:0,
+    ex:'계열을 먼저 고른 뒤 그 계열만 종류를 바꿉니다.' },
+  { unit:'유형 07 · 제4작업', q:'차트 완성 뒤 마지막으로 반드시 확인하라고 문제지가 적어 둔 것은?',
+    ch:['글꼴 크기','시트명 순서','인쇄 영역','눈금선 색'], a:1,
+    ex:'제1작업부터 차례대로 놓여 있어야 합니다.' },
+  { unit:'유형 07 · 제4작업', q:'차트 영역의 「채우기 효과(질감)」를 지정하는 곳은?',
+    ch:['차트 영역 서식','축 서식','범례 서식','데이터 레이블 서식'], a:0,
+    ex:'차트 바깥 테두리 안쪽 전체에 적용되는 서식입니다.' },
 ];
 
-/* ── 3) 설정 ── */
+/* ── 3) 실습 세트 — 기출 형태를 그대로 따라 하는 체크리스트 ── */
+const SETS = [
+  { key:'A', name:'세트 A · 답안 파일 준비',
+    goal:'시험이 시작되면 3분 안에 끝내야 하는 준비 작업입니다.',
+    note:'여기서 시트 이름이나 A열 너비를 빼먹으면 뒤에서 되돌리기 어렵습니다.',
+    steps:[
+      { t:'엑셀을 실행하고 새 통합 문서를 연다', d:'' },
+      { t:'시트를 세 장 더 만들어 넉 장으로 맞춘다', d:'+ 단추로 추가' },
+      { t:'시트 이름을 제1작업·제2작업·제3작업으로 바꾼다', d:'제4작업은 그래프를 옮길 때 생긴다' },
+      { t:'시트 세 장을 함께 선택(그룹화)한다', d:'첫 시트 클릭 → Shift + 마지막 시트 클릭' },
+      { t:'A열 너비를 1로 지정한다', d:'A열 머리 우클릭 → 열 너비 → 1' },
+      { t:'그룹을 해제한다', d:'아무 시트나 하나 클릭' },
+      { t:'수험번호-성명 으로 저장한다', d:'내 PC\\문서\\ITQ 폴더 · xlsx' },
+    ]},
+  { key:'B', name:'세트 B · 제1작업 표 서식 (240점)',
+    goal:'표를 입력하고 제목·결재란·셀 서식까지 끝냅니다.',
+    note:'제2·3·4작업이 모두 이 표를 가져다 씁니다. 여기서 틀리면 전부 틀립니다.',
+    steps:[
+      { t:'≪출력형태≫를 보고 데이터를 입력한다', d:'열 너비는 나중에 맞춘다' },
+      { t:'전체 글꼴과 크기를 지정한다', d:'굴림 11pt' },
+      { t:'정렬을 지정한다', d:'숫자·회계 서식은 오른쪽, 나머지는 가운데' },
+      { t:'테두리를 출력형태와 같게 만든다', d:'바깥 굵은 선·대각선 등' },
+      { t:'제목 도형을 넣고 서식을 지정한다', d:'도형 + 그림자 + 글꼴·채우기' },
+      { t:'결재란을 임의의 셀에 만든다', d:'표와 떨어진 곳에' },
+      { t:'결재란을 그림으로 복사해 붙이고 원본을 지운다', d:'복사 → 붙여넣기 → 그림' },
+      { t:'지정된 영역을 지시된 색으로 채운다', d:'예: 주황' },
+      { t:'유효성 검사로 목록을 만든다', d:'[데이터] → 데이터 유효성 검사 → 목록' },
+      { t:'사용자 지정 표시 형식으로 단위를 붙인다', d:'값은 그대로 두고 서식만' },
+      { t:'지정된 영역에 이름을 정의한다', d:'이름 상자에 입력' },
+      { t:'저장한다', d:'Ctrl+S' },
+    ]},
+  { key:'C', name:'세트 C · 제1작업 값 계산 (함수)',
+    goal:'(1)~(6) 계산 칸과 조건부 서식을 끝냅니다.',
+    note:'결과값을 손으로 적으면 그 칸은 0점입니다. 반드시 지시된 함수로 만듭니다.',
+    steps:[
+      { t:'문제의 (1)~(6)을 읽고 각 칸에 쓸 함수를 적어 둔다', d:'괄호 안 함수 이름이 곧 답의 뼈대' },
+      { t:'문자에서 한 글자를 떼어 골라 오는 칸을 만든다', d:'CHOOSE + MID 형태' },
+      { t:'순위를 구하는 칸을 만든다', d:'RANK.EQ' },
+      { t:'조건에 맞는 개수를 구하는 칸을 만든다', d:'DCOUNTA 또는 COUNTIF' },
+      { t:'결과에 「개」 같은 글자를 이어 붙인다', d:'& 연산자' },
+      { t:'조건에 맞는 값의 평균을 구하는 칸을 만든다', d:'SUMIF / COUNTIF · 정의된 이름 이용' },
+      { t:'가장 큰 값(또는 작은 값)을 구하는 칸을 만든다', d:'MAX / MIN' },
+      { t:'선택한 코드에 해당하는 값을 찾아오는 칸을 만든다', d:'VLOOKUP · 유효성 검사 셀과 연결' },
+      { t:'조건부 서식을 수식으로 지정한다', d:'행 전체에 걸리도록 · 지정된 글꼴 서식' },
+      { t:'값이 출력형태와 같은지 하나씩 대조한다', d:'' },
+      { t:'저장한다', d:'Ctrl+S' },
+    ]},
+  { key:'D', name:'세트 D · 제2·제3작업 (160점)',
+    goal:'필터·목표값 찾기·부분합·피벗 테이블을 끝냅니다.',
+    note:'문제마다 두 유형 중 하나가 나옵니다. 문제지 제목을 먼저 읽고 어느 쪽인지 확인하세요.',
+    steps:[
+      { t:'제1작업의 지정 영역을 복사해 제2작업 B2 셀부터 붙여넣는다', d:'주소는 문제에 못박혀 있다' },
+      { t:'[목표값 찾기 유형] 셀을 병합하고 설명을 입력한다', d:'테두리·가운데 맞춤' },
+      { t:'[목표값 찾기 유형] 평균을 구하고 목표값 찾기를 실행한다', d:'[데이터] → 가상 분석' },
+      { t:'고급 필터 조건 범위를 지정된 셀부터 입력한다', d:'머리글을 원본과 똑같이' },
+      { t:'고급 필터를 실행해 지정된 셀에 결과를 낸다', d:'다른 장소에 복사' },
+      { t:'[필터 및 서식 유형] 결과에 표 스타일을 적용한다', d:'채우기 없음 → 지정된 스타일 · 머리글 행·줄무늬 행' },
+      { t:'제1작업의 영역을 복사해 제3작업 B2 셀부터 붙여넣는다', d:'' },
+      { t:'[부분합 유형] 출력형태를 보고 기준 열로 정렬한다', d:'정렬이 먼저다' },
+      { t:'[부분합 유형] 부분합을 두 번 넣는다', d:'두 번째는 「새로운 값으로 대치」 해제' },
+      { t:'[부분합 유형] 윤곽을 지운다', d:'[데이터] → 그룹 해제 → 윤곽 지우기' },
+      { t:'[피벗 유형] 피벗 테이블을 만들고 필드를 배치한다', d:'행·열·값' },
+      { t:'[피벗 유형] 숫자 필드를 그룹화한다', d:'시작·끝·단위 입력' },
+      { t:'[피벗 유형] 옵션에서 레이블 셀 병합과 빈 셀 표시를 지정한다', d:'빈 셀은 ** 로' },
+      { t:'[피벗 유형] 행의 총합계를 지운다', d:'' },
+      { t:'저장한다', d:'Ctrl+S' },
+    ]},
+  { key:'E', name:'세트 E · 제4작업 그래프 (100점)',
+    goal:'차트를 새 시트로 옮기고 서식을 조건대로 지정합니다.',
+    note:'조건 (1)부터 (10)까지 번호 순서대로 하면 빠뜨리지 않습니다.',
+    steps:[
+      { t:'제1작업에서 차트로 쓸 범위를 블록으로 잡는다', d:'떨어진 열은 Ctrl 을 누른 채 함께 선택' },
+      { t:'지시된 차트 종류로 차트를 만든다', d:'대개 묶은 세로 막대형' },
+      { t:'차트를 새 시트로 옮기고 이름을 제4작업으로 바꾼다', d:'차트 이동 → 새 시트' },
+      { t:'지정된 레이아웃과 스타일을 고른다', d:'[차트 디자인] 탭' },
+      { t:'차트 영역 글꼴과 채우기를 지정한다', d:'질감 등 채우기 효과' },
+      { t:'그림 영역 채우기를 지정한다', d:'' },
+      { t:'차트 제목을 입력하고 서식을 지정한다', d:'글꼴·채우기·테두리' },
+      { t:'지정된 계열만 꺾은선형으로 바꾸고 보조 축을 지정한다', d:'계열 차트 종류 변경' },
+      { t:'표식 모양·크기와 레이블 값 표시를 지정한다', d:'' },
+      { t:'눈금선 선 스타일을 지정한다', d:'파선 등' },
+      { t:'축 서식을 출력형태에 맞춘다', d:'최소·최대·주 단위' },
+      { t:'범례명을 바꾼다', d:'데이터 선택 → 편집' },
+      { t:'도형(설명선)을 넣고 내용을 입력한다', d:'' },
+      { t:'시트 순서가 제1~제4작업인지 확인하고 저장한다', d:'' },
+    ]},
+];
+
+/* ── 4) 설정 ── */
 const CFG = {
-  practiceN : 8,     // 연습 문항 수
-  examN     : 20,    // 종합시험 문항 수 (규약)
+  practiceN : 8,
+  examN     : 20,
   storeKey  : 'itq-excel_v1',
+  toolName  : 'ITQ 엑셀',
+  appName   : '엑셀',
 };
 
 /* ══════════════ 여기부터는 대개 손대지 않습니다 ══════════════ */
@@ -124,15 +489,15 @@ const shuffle = a => a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(v=>v
 
 const ST = load();
 function load(){
-  try{ return Object.assign({wrong:[],done:{}}, JSON.parse(localStorage.getItem(CFG.storeKey)||'{}')); }
-  catch(e){ return {wrong:[],done:{}}; }
+  try{ return Object.assign({wrong:[],sets:{}}, JSON.parse(localStorage.getItem(CFG.storeKey)||'{}')); }
+  catch(e){ return {wrong:[],sets:{}}; }
 }
 function save(){ try{ localStorage.setItem(CFG.storeKey, JSON.stringify(ST)); }catch(e){} }
 
-let quiz = null;          // 지금 풀고 있는 세트
-let lastResult = null;    // 제출용 결과
+let quiz = null;
+let lastResult = null;
+let curSet = SETS[0].key;
 
-/* ── 화면 전환 ── */
 document.querySelectorAll('.tab').forEach(t=>{
   t.onclick = ()=>{
     document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
@@ -147,6 +512,7 @@ function render(view){
   if(view==='learn')    return renderLearn(v);
   if(view==='practice') return startQuiz(v,'practice');
   if(view==='exam')     return startQuiz(v,'exam');
+  if(view==='sets')     return renderSets(v);
   if(view==='wrong')    return renderWrong(v);
 }
 
@@ -162,8 +528,10 @@ function renderLearn(v){
   v.appendChild(el(`<div class="card row">
     <b>다 읽었으면</b>
     <button class="btn btn-primary" id="goPractice">✏️ 연습 ${CFG.practiceN}문항 풀어보기</button>
+    <button class="btn" id="goSets">🧪 실습 세트로 가기</button>
   </div>`));
   $('#goPractice').onclick = ()=>document.querySelector('[data-view="practice"]').click();
+  $('#goSets').onclick     = ()=>document.querySelector('[data-view="sets"]').click();
 }
 
 /* ── 문제 풀이 ──
@@ -208,13 +576,12 @@ function pick(v, idx, btn){
   if(ok) quiz.correct++;
   else   pushWrong(q, idx);
 
-  if(quiz.mode==='exam'){                 // 종합시험 — 아무 표시 없이 다음으로
+  if(quiz.mode==='exam'){
     quiz.i++;
     if(quiz.i >= quiz.list.length) return finish(v);
     return drawQ(v);
   }
 
-  /* 연습 — 정답·해설 즉시 공개 + 연출 */
   document.querySelectorAll('.choice').forEach((b,i)=>{
     b.disabled = true;
     if(i===q.a) b.classList.add('correct');
@@ -241,7 +608,6 @@ function pushWrong(q, pick){
   save();
 }
 
-/* ── 끝난 뒤 ── */
 function finish(v){
   const n   = quiz.list.length;
   const pct = Math.round(quiz.correct / n * 100);
@@ -256,7 +622,6 @@ function finish(v){
       <div id="rSubmitAnchor" style="margin-top:12px"></div>
     </div>`));
 
-  /* 오답노트 — 종합시험은 여기서 처음으로 정답을 본다 */
   const bad = quiz.picks.filter(p=>!p.ok);
   if(bad.length){
     v.appendChild(el('<div class="card"><h3>📕 틀린 문제</h3></div>'));
@@ -271,8 +636,6 @@ function finish(v){
     });
   }
 
-  /* 제출을 먼저 붙입니다 — 연출·계급에서 오류가 나도 제출 버튼은 살아 있어야 합니다.
-     (실제로 소리 재생이 막힌 환경에서 FX 가 던진 오류에 제출 버튼이 통째로 사라진 적이 있습니다) */
   mountSubmit(pct, quiz.correct, n, sec, part, bad);
 
   try{
@@ -283,17 +646,16 @@ function finish(v){
   }catch(e){ console.warn('FX', e); }
   try{
     if(window.Rank){
-      const res = Rank.award(pct, { mode:`ITQ 엑셀 — ${part}` });   // RP 정산
-      $('#rankBox').innerHTML = Rank.resultBox(res);                     // 문자열 HTML 을 돌려줍니다
+      const res = Rank.award(pct, { mode:`${CFG.toolName} — ${part}` });
+      $('#rankBox').innerHTML = Rank.resultBox(res);
     }
   }catch(e){ console.warn('Rank', e); }
 }
 
-/* ── 결과 제출 (규약 1) ──
-   mode 는 파트마다 다르게, wrong 은 번호가 아니라 "무엇을 틀렸는지" */
+/* ── 결과 제출 (규약 1) ── */
 function mountSubmit(pct, correct, total, sec, part, bad){
   lastResult = {
-    mode   : `ITQ 엑셀 — ${part}`,
+    mode   : `${CFG.toolName} — ${part}`,
     score  : pct, correct, total,
     wrong  : bad.map(p => `${p.q.unit||''} ${p.q.q.slice(0,24)}… → 정답 ${p.q.a+1}번`),
     durationSec : sec,
@@ -303,12 +665,101 @@ function mountSubmit(pct, correct, total, sec, part, bad){
   const btn = ResultCollector.attach(anchor, ()=>lastResult, {
     id:'rcBtn', className:'btn btn-primary',
     mode: lastResult.mode,
-    extra: [`ITQ 엑셀 ${part} ${pct}점`],
+    extra: [`${CFG.toolName} ${part} ${pct}점`],
   });
   if(btn){ btn.style.width='100%'; btn.textContent = `📤 [${part}] 결과 제출`; }
 }
 
-/* ── 오답노트 (쌓인 것) ── */
+/* ── 실습 세트 (따라 하기 체크리스트) ── */
+function setState(key){
+  if(!ST.sets[key]) ST.sets[key] = { done:[], start:Date.now() };
+  return ST.sets[key];
+}
+
+function renderSets(v){
+  const bar = el('<div class="setbar"></div>');
+  SETS.forEach(s=>{
+    const st = setState(s.key);
+    const n  = st.done.length, tot = s.steps.length;
+    const b = el(`<button class="setbtn${s.key===curSet?' on':''}">${s.name} <span class="muted" style="color:inherit">${n}/${tot}</span></button>`);
+    b.onclick = ()=>{ curSet = s.key; render('sets'); };
+    bar.appendChild(b);
+  });
+  v.appendChild(bar);
+
+  const S  = SETS.find(x=>x.key===curSet);
+  const st = setState(S.key);
+  if(!st.start) st.start = Date.now();
+
+  v.appendChild(el(`<div class="card">
+      <span class="pill">${S.name}</span>
+      <h3>${S.goal}</h3>
+      <div class="body muted">${CFG.appName} 을(를) 옆에 띄워 놓고, 한 단계씩 실제로 해 보면서 눌러 체크하세요.</div>
+    </div>`));
+  v.appendChild(el(`<div class="setnote">💡 ${S.note}</div>`));
+
+  const doneN = S.steps.filter((_,i)=>st.done.includes(i)).length;
+  v.appendChild(el(`<div class="progress"><i style="width:${doneN/S.steps.length*100}%"></i></div>`));
+  const cnt = el(`<div class="row" style="margin-bottom:10px">
+      <b id="setCnt">${doneN} / ${S.steps.length} 단계</b>
+      <span class="spacer" style="flex:1"></span>
+      <button class="btn" id="setClear">이 세트 다시 시작</button></div>`);
+  v.appendChild(cnt);
+  $('#setClear').onclick = ()=>{ ST.sets[S.key] = { done:[], start:Date.now() }; save(); render('sets'); };
+
+  S.steps.forEach((s,i)=>{
+    const on = st.done.includes(i);
+    const row = el(`<div class="step${on?' done':''}" role="checkbox" tabindex="0"
+        aria-checked="${on?'true':'false'}">
+        <div class="bx">${on?'✓':''}</div>
+        <div class="st"><b>${i+1}. ${s.t}</b><span>${s.d||''}</span></div>
+      </div>`);
+    const toggle = ()=>{
+      const idx = st.done.indexOf(i);
+      if(idx>=0) st.done.splice(idx,1); else st.done.push(i);
+      save();
+      try{ if(window.FX && idx<0) FX.ok(row); }catch(e){}
+      render('sets');
+    };
+    row.onclick = toggle;
+    row.onkeydown = (e)=>{ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); toggle(); } };
+    v.appendChild(row);
+  });
+
+  v.appendChild(el(`<div class="card" style="text-align:center">
+      <div class="muted">끝냈으면 선생님께 보냅니다</div>
+      <div id="setSubmit" style="margin-top:10px"></div>
+    </div>`));
+  mountSetSubmit(S, st);
+}
+
+function mountSetSubmit(S, st){
+  const total = S.steps.length;
+  const done  = st.done.length;
+  const pct   = Math.round(done/total*100);
+  const sec   = Math.max(0, Math.round((Date.now() - (st.start||Date.now()))/1000));
+  const miss  = S.steps.map((s,i)=>st.done.includes(i)?null:`${i+1}. ${s.t}`).filter(Boolean);
+
+  const payload = {
+    mode  : `${CFG.toolName} — 실습 ${S.name}`,
+    score : pct, correct: done, total,
+    wrong : miss,
+    durationSec : sec,
+  };
+  const anchor = $('#setSubmit');
+  if(!(window.ResultCollector && ResultCollector.attach) || !anchor) return;
+  /* labels 로 공통 열 이름을 바꾸면 같은 탭에 열이 하나 더 생깁니다(규약 1).
+     이 도구는 연습·종합시험 점수도 같은 탭에 쌓이므로 열 이름은 그대로 두고,
+     활동(파트) 이름에 「실습」을 넣어 구분합니다. 점수 칸의 값은 완료율입니다. */
+  const btn = ResultCollector.attach(anchor, ()=>payload, {
+    id:'rcSetBtn', className:'btn btn-primary',
+    mode: payload.mode,
+    extra: [`${CFG.toolName} ${S.name} ${pct}% 완료`],
+  });
+  if(btn){ btn.style.width='100%'; btn.textContent = `📤 [${S.name}] 실습 결과 제출`; }
+}
+
+/* ── 오답노트 ── */
 function renderWrong(v){
   if(!ST.wrong.length){
     v.appendChild(el('<div class="empty">🗒️ 아직 오답이 없어요!<br>연습이나 종합시험을 풀면 여기에 모입니다.</div>'));
@@ -329,7 +780,7 @@ function renderWrong(v){
   });
 }
 
-$('#hdSub').textContent = `문항 ${QUESTIONS.length} · 개념 ${LEARN.length}`;
+$('#hdSub').textContent = `문항 ${QUESTIONS.length} · 개념 ${LEARN.length} · 실습 세트 ${SETS.length}`;
 render('learn');
 </script>
 
