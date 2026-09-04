@@ -84,9 +84,40 @@
   .step .st span{display:block;color:var(--dim);font-size:13.5px;margin-top:2px}
   .setnote{background:#fffbeb;border:1px solid #fde68a;border-radius:11px;padding:11px 14px;
            font-size:13.5px;color:#78350f;margin-bottom:12px}
+
+  /* ── 📚 기출 세트 (교재 17회차 · 암호 잠금) ── */
+  .lockbox{max-width:560px;margin:24px auto;text-align:center}
+  .lockbox h3{margin:0 0 6px}
+  .lockrow{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+  .lockrow input{padding:10px 12px;border:1px solid var(--line);border-radius:10px;
+    font-size:16px;min-width:200px;text-align:center;letter-spacing:1px}
+  #lockMsg{margin-top:10px;font-size:14px;min-height:20px}
+  .rndbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .rndbtn{padding:6px 11px;border:1px solid var(--line);border-radius:999px;background:var(--card);
+    cursor:pointer;font-size:13px;font-weight:700;color:#334}
+  .rndbtn.on{background:var(--pri);border-color:var(--pri);color:#fff}
+  .rndbtn.gi{border-style:dashed}
+  .task{border:1px solid var(--line);border-radius:12px;background:var(--card);
+    padding:14px 16px;margin-bottom:12px}
+  .task > h4{margin:0 0 4px;font-size:16px}
+  .task .pt2{float:right;font-weight:800;color:var(--pri);font-size:14px}
+  .task ol,.task ul{margin:8px 0;padding-left:20px}
+  .task li{margin:4px 0;line-height:1.6;font-size:14px}
+  .task .from{font-size:13.5px;color:#445;background:#f6f8fc;border-radius:8px;padding:8px 10px;margin:6px 0}
+  .task .calc li b{color:var(--pri)}
+  .fn{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;
+    background:#eef3ff;color:#2a4d9b;font-size:12px;font-weight:700}
+  .task img{display:block;width:100%;margin:10px 0 2px;border:1px solid var(--line);border-radius:8px}
+  .figcap{font-size:12.5px;color:var(--dim);text-align:center}
+  .figfail{padding:10px;border:1px dashed var(--line);border-radius:8px;
+    color:var(--dim);font-size:13px;text-align:center;margin:10px 0}
+  .dtab{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0}
+  .dtab th,.dtab td{border:1px solid var(--line);padding:5px 7px;white-space:nowrap}
+  .dtab th{background:#f1f4f9;font-size:12.5px}
+  .booknote{font-size:12.5px;color:var(--dim);margin-top:10px;text-align:center}
 </style>
 </head>
-<body>
+<body data-build="95015596">
 <div class="wrap">
 
   <header>
@@ -98,6 +129,7 @@
     <button class="tab on" data-view="learn">📖 배우기</button>
     <button class="tab"    data-view="practice">✏️ 연습 8문항</button>
     <button class="tab"    data-view="sets">🧪 실습 세트</button>
+    <button class="tab"    data-view="book">📚 기출 세트</button>
     <button class="tab"    data-view="exam">🏁 종합시험 20문항</button>
     <button class="tab"    data-view="wrong">📕 오답노트</button>
   </div>
@@ -487,10 +519,15 @@ const $  = s => document.querySelector(s);
 const el = (h) => { const d=document.createElement('div'); d.innerHTML=h.trim(); return d.firstElementChild; };
 const shuffle = a => a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(v=>v[1]);
 
+/* 교재 원문을 그대로 화면에 넣는다. 「B4:H12」 같은 표기에 < > & 가 섞여 있어
+   그냥 넣으면 태그로 먹히고 조건 한 줄이 통째로 사라진다. */
+const esc = x => String(x==null?'':x)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
 const ST = load();
 function load(){
-  try{ return Object.assign({wrong:[],sets:{}}, JSON.parse(localStorage.getItem(CFG.storeKey)||'{}')); }
-  catch(e){ return {wrong:[],sets:{}}; }
+  try{ return Object.assign({wrong:[],sets:{},book:{}}, JSON.parse(localStorage.getItem(CFG.storeKey)||'{}')); }
+  catch(e){ return {wrong:[],sets:{},book:{}}; }
 }
 function save(){ try{ localStorage.setItem(CFG.storeKey, JSON.stringify(ST)); }catch(e){} }
 
@@ -513,6 +550,7 @@ function render(view){
   if(view==='practice') return startQuiz(v,'practice');
   if(view==='exam')     return startQuiz(v,'exam');
   if(view==='sets')     return renderSets(v);
+  if(view==='book')     return renderBook(v);
   if(view==='wrong')    return renderWrong(v);
 }
 
@@ -781,6 +819,276 @@ function renderWrong(v){
 }
 
 $('#hdSub').textContent = `문항 ${QUESTIONS.length} · 개념 ${LEARN.length} · 실습 세트 ${SETS.length}`;
+/* ══════════════════════════════════════════════════════════════
+   📚 기출 세트 — 교재 17회차 (모의 12 + 기출 5)
+
+   교재 저작물이라 이 탭 하나만 잠근다. 나머지 탭(배우기·연습·실습 세트·
+   종합시험·오답노트)은 앞 세션이 직접 쓴 것이라 암호 없이 그대로 쓴다.
+
+   정적 호스팅에서는 화면 비밀번호가 보호가 되지 않는다(파일 주소를 직접 치면
+   그대로 받아진다). 그래서 회차 원문을 AES-GCM 으로 실제 암호화해 두고
+   여기서 WebCrypto 로 푼다. 암호가 틀리면 복호화가 실패한다.
+   ══════════════════════════════════════════════════════════════ */
+const LOCK_KEY = 'itqxl_v1_pw', SHARED_KEY = 'hong_pw_v1';
+const b64 = x => Uint8Array.from(atob(x), c => c.charCodeAt(0));
+const isoOf = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const mondayOf = d => { const x=new Date(d); x.setDate(x.getDate()-((x.getDay()+6)%7)); x.setHours(0,0,0,0); return x; };
+const prettyCode = c => c.slice(0,4)+' '+c.slice(4);
+
+let CK = null, BUILD = '', BOOK = null, LOCK_INFO = null, curRound = 0;
+const imgCache = {};
+
+/* nonce(12바이트) + 암호문 형태로 봉해 둔 것을 내용키로 푼다 */
+function unseal(buf){
+  const u = new Uint8Array(buf);
+  return crypto.subtle.decrypt({name:'AES-GCM', iv:u.slice(0,12)}, CK, u.slice(12));
+}
+
+/* 방금 그린 화면의 출력형태 그림을 한 장씩 받아 채운다.
+   ?b= 는 빌드 표식 — 없으면 브라우저가 옛 암호문을 캐시에서 꺼내 쓰고,
+   복호화가 조용히 실패해 그림이 빈 칸으로만 보인다. */
+function fillImgs(root){
+  if(!CK) return;
+  (root||document).querySelectorAll('img[data-enc]:not([src])').forEach(im=>{
+    const name = im.getAttribute('data-enc');
+    if(imgCache[name]){ im.src = imgCache[name]; return; }
+    fetch('enc/'+encodeURIComponent(name)+'.enc'+(BUILD?'?b='+BUILD:''), {cache:'force-cache'})
+      .then(r=>r.arrayBuffer()).then(unseal)
+      .then(plain=>{
+        const url = URL.createObjectURL(new Blob([plain], {type:'image/jpeg'}));
+        imgCache[name] = url; im.src = url;
+      })
+      .catch(()=>{
+        /* 조용히 빈 칸으로 두면 수업 중에 무슨 일인지 알 수 없다 */
+        const d = document.createElement('div');
+        d.className = 'figfail';
+        d.textContent = '그림을 열지 못했습니다 ('+name+') — 새로고침해 보세요.';
+        im.replaceWith(d);
+      });
+  });
+}
+
+/* 감싼 키들을 훑어 맞는 것을 찾는다. salt 를 공유하므로 PBKDF2 는 딱 1회 돈다. */
+async function findKey(kek, keys){
+  for(const k of keys){
+    try{
+      const plain = await crypto.subtle.decrypt({name:'AES-GCM', iv:b64(k.iv)}, kek, b64(k.blob));
+      return JSON.parse(new TextDecoder().decode(plain));
+    }catch(_){}
+  }
+  throw new Error('BADPW');
+}
+
+/* 교사용으로 열면 그 주 학생 코드를 계산해 보여 준다.
+   마스터 시크릿은 교사용으로 감싼 안쪽에만 있어 학생 코드로는 계산할 수 없다. */
+async function weekCode(msB64, mon){
+  const k = await crypto.subtle.importKey('raw', b64(msB64), {name:'HMAC',hash:'SHA-256'}, false, ['sign']);
+  const sig = new Uint8Array(await crypto.subtle.sign('HMAC', k,
+    new TextEncoder().encode((LOCK_INFO.prefix||'HONGW|') + isoOf(mon))));
+  const n = ((sig[0]<<24)>>>0) + (sig[1]<<16) + (sig[2]<<8) + sig[3];
+  return String(n % 90000000 + 10000000);
+}
+
+async function unlockBook(pw, quiet){
+  const msg = $('#lockMsg');
+  const say = (t,c)=>{ if(msg && (!quiet || c==='bad')){ msg.innerHTML=t;
+    msg.style.color = c==='bad' ? '#c0392b' : (c==='ok' ? '#1e8449' : '#7a879b'); } };
+  try{
+    say('여는 중…');
+    const blob = await (await fetch('sets.enc',{cache:'no-store'})).json();
+    const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
+    const kek = await crypto.subtle.deriveKey(
+      {name:'PBKDF2', salt:b64(blob.kdf.salt), iterations:blob.kdf.iter, hash:'SHA-256'},
+      base, {name:'AES-GCM', length:256}, false, ['decrypt']);
+    const info = await findKey(kek, blob.keys);
+    const today = isoOf(new Date());
+    if(info.nbf && today <  info.nbf){ const e=new Error('NOTYET');  e.when=info.nbf; throw e; }
+    if(info.exp && today >= info.exp){ const e=new Error('EXPIRED'); e.when=info.exp; throw e; }
+    LOCK_INFO = info;
+
+    CK = await crypto.subtle.importKey('raw', b64(info.ck), {name:'AES-GCM'}, false, ['decrypt']);
+    BUILD = blob.build || document.body.dataset.build || '';
+    const plain = await unseal(b64(blob.data));
+    const ds = new DecompressionStream('gzip');
+    const txt = await new Response(new Blob([plain]).stream().pipeThrough(ds)).text();
+    BOOK = JSON.parse(txt).sets;
+
+    try{
+      localStorage.setItem(LOCK_KEY, pw);
+      if(!info.exp) localStorage.setItem(SHARED_KEY, pw);   /* 만료되는 코드는 공용에 넣지 않는다 */
+    }catch(e){}
+
+    let extra = '';
+    if(!quiet && info.role==='teacher' && info.ms){
+      const c = await weekCode(info.ms, mondayOf(new Date()));
+      extra = '<br><b style="color:#b8860b">이번 주 학생 코드 — '+prettyCode(c)+'</b>';
+    }
+    say('✅ '+BOOK.length+'회차가 열렸어요!'+extra, 'ok');
+    const cur = document.querySelector('.tab.on');
+    if(cur && cur.dataset.view === 'book'){
+      setTimeout(()=>render('book'), extra ? 2400 : 400);
+    }
+    return true;
+  }catch(e){
+    const m = e && e.message;
+    if(m==='EXPIRED')     say('사용 기간이 끝난 코드예요('+e.when+'까지). 선생님께 이번 주 코드를 받으세요.','bad');
+    else if(m==='NOTYET') say('아직 쓸 수 없는 코드예요. '+e.when+'부터 쓸 수 있어요.','bad');
+    else                  say('코드가 맞지 않아요.','bad');
+    try{ localStorage.removeItem(LOCK_KEY); }catch(_){}     /* 공용 키는 건드리지 않는다 */
+    return false;
+  }
+}
+
+/* 잠금 화면 — 아직 안 열렸을 때만 보인다 */
+function renderLock(v){
+  v.appendChild(el('<div class="card lockbox">' +
+    '<h3>📚 기출 세트</h3>' +
+    '<div class="muted">교재의 <b>출제예상 모의고사 12회 + 최신유형 기출문제 5회</b>가 들어 있습니다.<br>' +
+    '교재 저작물이라 <b>이 탭만</b> 코드로 잠겨 있습니다. ' +
+    '배우기·연습·실습 세트·종합시험은 코드 없이 그대로 쓸 수 있어요.</div>' +
+    '<div class="lockrow">' +
+    '<input id="lockPw" type="password" placeholder="코드를 입력하세요" autocomplete="off">' +
+    '<button class="btn btn-primary" id="lockGo">열기</button></div>' +
+    '<div id="lockMsg"></div>' +
+    '<div class="booknote">선생님께 받은 8자리 코드 또는 교사용 암호를 넣으세요.</div></div>'));
+  $('#lockGo').onclick = ()=> unlockBook($('#lockPw').value.replace(/\s+/g,''));
+  $('#lockPw').addEventListener('keydown', e=>{ if(e.key==='Enter') $('#lockGo').click(); });
+  $('#lockPw').focus();
+}
+
+/* 한 과제(제1~제4작업) 를 그린다 */
+function taskCard(t){
+  const li = a => (a||[]).map(x=>'<li>'+esc(x)+'</li>').join('');
+  let h = '<div class="task"><span class="pt2">'+t.pt+'점</span>' +
+          '<h4>제'+t.no+'작업 · '+esc(t.name)+'</h4>';
+  if(t.intro) h += '<div class="from">'+esc(t.intro)+'</div>';
+  if(t.from)  h += '<div class="from">'+esc(t.from)+'</div>';
+  if(t.data){
+    h += '<div class="scroll"><table class="dtab"><tr>' +
+         t.data.head.map(x=>'<th>'+esc(x)+'</th>').join('') + '</tr>' +
+         t.data.rows.map(r=>'<tr>'+r.map(c=>'<td>'+esc(c)+'</td>').join('')+'</tr>').join('') +
+         '</table></div>';
+    if(t.data.foot) h += '<ul>' + li(t.data.foot) + '</ul>';
+    if(t.data.note) h += '<div class="booknote" style="text-align:left">'+esc(t.data.note)+'</div>';
+  }
+  if(t.cond && t.cond.length) h += '<b>≪조건≫</b><ol>' + li(t.cond) + '</ol>';
+  if(t.calc && t.calc.length){
+    h += (t.calcHead ? '<div class="from">'+esc(t.calcHead)+'</div>' : '') +
+         '<ol class="calc">' + t.calc.map(c =>
+           '<li><b>('+c.no+')</b> ' + esc(c.ask) +
+           (c.fn ? '<span class="fn">'+esc(c.fn)+'</span>' : '') + '</li>').join('') + '</ol>';
+  }
+  if(t.img) h += '<img data-enc="'+esc(String(t.img).split('/').pop())+'" alt="≪출력형태≫">' +
+                 '<div class="figcap">≪출력형태≫ — 교재 그림</div>';
+  if(t.note) h += '<div class="booknote" style="text-align:left">주의 ▸ '+esc(t.note)+'</div>';
+  return h + '</div>';
+}
+
+function roundName(s){
+  return (s.kind==='기출문제' ? '기출 ' : '모의 ') + String(s.no).padStart(2,'0');
+}
+
+function renderBook(v){
+  if(!BOOK) return renderLock(v);
+
+  const bar = el('<div class="rndbar"></div>');
+  BOOK.forEach((s,i)=>{
+    const b = el('<button class="rndbtn'+(i===curRound?' on':'')+
+                 (s.kind==='기출문제'?' gi':'')+'">'+roundName(s)+'</button>');
+    b.onclick = ()=>{ curRound = i; render('book'); };
+    bar.appendChild(b);
+  });
+  v.appendChild(bar);
+
+  const S = BOOK[curRound];
+  const tot = S.tasks.reduce((a,t)=>a+t.pt,0);
+  v.appendChild(el('<div class="card">' +
+    '<span class="pill">'+esc(S.kind)+'</span>' +
+    '<h3>'+esc(S.title)+'</h3>' +
+    '<div class="body muted">엑셀을 옆에 띄워 놓고 <b>제1작업 → 제4작업</b> 순서로 직접 만들어 보세요. ' +
+    '시험시간 60분 · 총 '+tot+'점.<br>' +
+    '≪출력형태≫는 교재 그림 그대로입니다. 표 데이터는 위 표에서 그대로 옮겨 적으면 됩니다.</div></div>'));
+
+  const wrap = el('<div></div>');
+  S.tasks.forEach(t => wrap.appendChild(el(taskCard(t))));
+  v.appendChild(wrap);
+  fillImgs(wrap);
+
+  v.appendChild(el('<div class="card" style="text-align:center">' +
+    '<div class="muted">만든 작업을 눌러 표시하고, 끝났으면 선생님께 보냅니다</div>' +
+    '<div id="bookSubmit" style="margin-top:10px"></div></div>'));
+  mountBookSubmit(S);
+}
+
+function bookState(id){
+  if(!ST.book) ST.book = {};
+  if(!ST.book[id]) ST.book[id] = { done:[], start:Date.now() };
+  if(Array.isArray(ST.book[id])) ST.book[id] = { done:ST.book[id], start:Date.now() };
+  if(!ST.book[id].start) ST.book[id].start = Date.now();
+  return ST.book[id];
+}
+
+/* 제출 — 실습 세트와 같은 방식(collector.js). mode 에 회차 이름이 들어간다. */
+function mountBookSubmit(S){
+  const box = $('#bookSubmit');
+  if(!box) return;
+  const name = roundName(S);
+  const st   = bookState(S.id);
+  const done = st.done;
+
+  const row = el('<div class="row" style="justify-content:center;gap:8px;flex-wrap:wrap"></div>');
+  S.tasks.forEach(t=>{
+    const on = done.indexOf(t.no) >= 0;
+    const b = el('<button class="setbtn'+(on?' on':'')+'">제'+t.no+'작업 '+(on?'✓':'')+'</button>');
+    b.onclick = ()=>{
+      const i = done.indexOf(t.no);
+      if(i>=0) done.splice(i,1); else done.push(t.no);
+      save();
+      try{ if(window.FX && i<0) FX.ok(b); }catch(e){}
+      render('book');
+    };
+    row.appendChild(b);
+  });
+  box.appendChild(row);
+
+  const pct  = Math.round(done.length / S.tasks.length * 100);
+  const got  = S.tasks.filter(t=>done.indexOf(t.no)>=0).reduce((a,t)=>a+t.pt,0);
+  const miss = S.tasks.filter(t=>done.indexOf(t.no)<0).map(t=>'제'+t.no+'작업 '+t.name);
+  const sec  = Math.max(0, Math.round((Date.now() - st.start)/1000));
+  box.appendChild(el('<div style="margin-top:8px"><b>'+got+' / 500점</b>' +
+    '<span class="muted"> · '+done.length+'/'+S.tasks.length+' 작업</span></div>'));
+
+  /* 제출은 실습 세트와 같은 통로(ResultCollector). 열 이름은 그대로 두고
+     활동 이름에 회차를 넣어 구분한다(규약 1). 점수 칸의 값은 완료율이다. */
+  const payload = {
+    mode  : CFG.toolName + ' — 기출 세트 ' + name,
+    score : pct, correct: done.length, total: S.tasks.length,
+    wrong : miss,
+    durationSec : sec,
+  };
+  if(!(window.ResultCollector && ResultCollector.attach)) return;
+  const btn = ResultCollector.attach(box, ()=>payload, {
+    id:'rcBookBtn', className:'btn btn-primary',
+    mode: payload.mode,
+    extra: [CFG.toolName + ' ' + name + ' ' + got + '/500점'],
+  });
+  if(btn){ btn.style.width='100%'; btn.style.marginTop='10px';
+           btn.textContent = '📤 [' + name + '] 기출 세트 결과 제출'; }
+}
+
+/* 이전에 열었으면 조용히 자동 해제 — 기기에서 한 번 열면 계속 열린다 */
+(function(){
+  try{
+    const a = localStorage.getItem(LOCK_KEY), b = localStorage.getItem(SHARED_KEY), t = [];
+    if(a) t.push(a);
+    if(b && b!==a) t.push(b);
+    (function next(i){
+      if(i>=t.length) return;
+      unlockBook(t[i], true).then(ok=>{ if(!ok) next(i+1); });
+    })(0);
+  }catch(e){}
+})();
+
 render('learn');
 </script>
 
